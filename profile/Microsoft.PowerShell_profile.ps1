@@ -12,13 +12,22 @@ Set-Alias reboot Restart-Computer
 Set-Alias rdp mstsc                                                                                                             
 Set-Alias rdc mstsc                                                                                                             
                                                                                                                                 
-# Chocolatey profile                                                                                                            
+# Chocolatey profile                                                                                                           
 $ChocolateyProfile = "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"                                                    
 if (Test-Path($ChocolateyProfile)) {                                                                                            
   Import-Module "$ChocolateyProfile"                                                                                            
 }                                                                                                                               
-                                                                                                                                
-Import-Module 'C:\tools\poshgit\dahlbyk-posh-git-a4faccd\src\posh-git.psd1'
+            
+$PoshGitModule = "C:\tools\poshgit\dahlbyk-posh-git-4184928\src\posh-git.psd1"                                                                                                                    
+if(Test-Path($PoshGitModule)) {
+  Import-Module $PoshGitModule 
+}
+
+# Load Choco Helper Functions
+$helpersPath = "$env:ChocolateyInstall\helpers";
+if(Test-Path($helpersPath)){
+  Get-Item $helpersPath\functions\*.ps1 |? { -not ($_.Name.Contains(".Tests.")) } |% { . $_.FullName;  }          
+}
                                                                                                                                 
 #User Functions                                                                                                                 
 function touch {set-content -Path ($args[0]) -Value ($null)}                                                                    
@@ -40,42 +49,4 @@ function ChocoUpgradeAll { choco upgrade all -y }
 ## HOME VPN                                                                                                                     
 function vpn([string]$connection="home", [switch]$d) { if($d){rasdial /disconnect} else {rasphone -d $connection} }         
 
-## Create bat file to allow quick apps aliases instead of adding lots of path variables
-function Add-AppAlias($alias, $path, [switch]$nw){
-
-    $batlocation = "$HOME\myapps"
-    if($alias -eq $null -or $path -eq $null){
-        Write-Error "Please specify both alias and path to the program"
-        return
-    }
-
-    if(!(Test-Path -Path $path)){
-        Write-Error "Cannot find the path '$path'"
-        return
-    } 
-
-
-    if(!(Test-Path -Path $batlocation)){
-        New-Item -ItemType directory -Path $batlocation
-        Append-ToPath $batlocation 
-    }
-
-    $aliaspath = "$batlocation\$alias.bat"
-
-    if(Test-Path -Path $aliaspath){
-        Write-Error "Sorry, the alias already exists: $aliaspath"
-        return
-    }
-
-    $newWindowContent = ""
-    if($nw) { $newWindowContent = 'start "" ' }
-
-    $content = @"
-@echo off
-$newWindowContent"$path" %*
-"@
-
-    $content | Out-File -encoding ASCII -append -FilePath $aliaspath
-    Write-Host "$alias was added successfully"
-}
     
